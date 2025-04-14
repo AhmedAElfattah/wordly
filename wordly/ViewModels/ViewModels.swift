@@ -224,7 +224,6 @@ class EnhancedOnboardingViewModel: ObservableObject {
         case .dailyGoalSetting:
             currentStep = .completion
         case .completion:
-            // This is handled by the view to complete onboarding
             break
         }
     }
@@ -232,7 +231,6 @@ class EnhancedOnboardingViewModel: ObservableObject {
     func moveToPreviousStep() {
         switch currentStep {
         case .welcome:
-            // Already at first step
             break
         case .difficultySelection:
             currentStep = .welcome
@@ -267,9 +265,8 @@ class EnhancedOnboardingViewModel: ObservableObject {
 
     func getUserPreferences() -> UserPreferences {
         return UserPreferences(
-            difficultyLevel: selectedDifficulty,
-            selectedCategories: Array(selectedCategories),
-            dailyGoal: selectedDailyGoal
+            dailyGoal: selectedDailyGoal,
+            selectedCategories: Array(selectedCategories)
         )
     }
 }
