@@ -76,6 +76,12 @@ class WordCardViewModel: ObservableObject {
     func incrementWordsViewedToday() {
         wordsViewedToday += 1
         saveProgress()
+
+        // Post a notification that the word count has changed
+        NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: nil)
+
+        // Print debug info
+        print("Words viewed today: \(wordsViewedToday)")
     }
 
     func isDailyGoalReached() -> Bool {

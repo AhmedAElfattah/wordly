@@ -200,3 +200,8 @@ extension Int {
         return self == 0 ? 10 : self
     }
 }
+
+// Custom notification names
+extension Notification.Name {
+    static let wordCardSwiped = Notification.Name("wordCardSwiped")
+}

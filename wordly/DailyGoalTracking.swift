@@ -1,18 +1,58 @@
+import Combine
 import SwiftUI
 
 // MARK: - Daily Goal Progress Tracking
 
 class DailyGoalTracker: ObservableObject {
-    @Published var wordsViewedToday: Int = 0
+    @Published var wordsViewedToday: Int = 0 {
+        didSet {
+            // Save progress whenever wordsViewedToday changes directly
+            UserDefaultsManager.shared.saveWordsViewedToday(wordsViewedToday)
+
+            // Update goal reached status
+            if wordsViewedToday >= dailyGoal && !hasReachedGoalToday {
+                hasReachedGoalToday = true
+                lastCompletionDate = Date()
+                updateStreak()
+                UserDefaultsManager.shared.saveLastCompletionDate(lastCompletionDate!)
+            }
+        }
+    }
     @Published var dailyGoal: Int = 10
     @Published var hasReachedGoalToday: Bool = false
     @Published var streakDays: Int = 0
     @Published var bestStreak: Int = 0
     @Published var lastCompletionDate: Date?
 
+    private var cancellables = Set<AnyCancellable>()
+
     init(dailyGoal: Int = 10) {
         self.dailyGoal = dailyGoal
         loadSavedProgress()
+
+        // Set up notification to observe user defaults changes
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .sink { [weak self] _ in
+                self?.refreshWordsViewed()
+            }
+            .store(in: &cancellables)
+
+        // Listen for direct swipe notifications
+        NotificationCenter.default.publisher(for: .wordCardSwiped)
+            .sink { [weak self] _ in
+                self?.refreshWordsViewed()
+            }
+            .store(in: &cancellables)
+    }
+
+    // Refresh the word count from UserDefaults
+    private func refreshWordsViewed() {
+        let count = UserDefaultsManager.shared.getWordsViewedToday()
+        if count != wordsViewedToday {
+            DispatchQueue.main.async {
+                self.wordsViewedToday = count
+            }
+        }
     }
 
     // Load saved progress from UserDefaults
@@ -52,12 +92,14 @@ class DailyGoalTracker: ObservableObject {
     // Record a viewed word
     func recordWordViewed() {
         wordsViewedToday += 1
+        print("DailyGoalTracker: Recorded word, new count: \(wordsViewedToday)")
 
         // Check if daily goal is reached
         if wordsViewedToday >= dailyGoal && !hasReachedGoalToday {
             hasReachedGoalToday = true
             lastCompletionDate = Date()
             updateStreak()
+            print("DailyGoalTracker: Daily goal reached! Streak: \(streakDays)")
         }
 
         saveProgress()
@@ -126,6 +168,7 @@ struct EnhancedDailyGoalProgressView: View {
                     Text("\(goalTracker.wordsViewedToday)/\(goalTracker.dailyGoal) words")
                         .font(.subheadline)
                         .foregroundColor(.textSecondary)
+                        .animation(.spring(), value: goalTracker.wordsViewedToday)
                 }
 
                 Spacer()
@@ -138,6 +181,7 @@ struct EnhancedDailyGoalProgressView: View {
                     Text("\(goalTracker.streakDays)")
                         .font(.headline)
                         .foregroundColor(.textPrimary)
+                        .animation(.spring(), value: goalTracker.streakDays)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -170,7 +214,7 @@ struct EnhancedDailyGoalProgressView: View {
 
                 // Milestone markers
                 ForEach(1..<goalTracker.dailyGoal, id: \.self) { milestone in
-                    if milestone % (goalTracker.dailyGoal / 5) == 0 {
+                    if milestone % (max(goalTracker.dailyGoal / 5, 1)) == 0 {
                         Rectangle()
                             .frame(width: 2, height: 14)
                             .foregroundColor(Color.white.opacity(0.7))
@@ -195,19 +239,20 @@ struct EnhancedDailyGoalProgressView: View {
                 .opacity(showAnimation ? 1 : 0)
                 .scaleEffect(showAnimation ? 1 : 0.8)
                 .onAppear {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3)) {
+                    withAnimation(.spring()) {
                         showAnimation = true
                     }
                 }
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.cardBackground)
-                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-        )
         .padding(.horizontal)
+        .onChange(of: goalTracker.hasReachedGoalToday) { hasReached in
+            if hasReached {
+                withAnimation(.spring()) {
+                    showAnimation = true
+                }
+            }
+        }
     }
 
     private var progressColor: Color {
@@ -216,11 +261,9 @@ struct EnhancedDailyGoalProgressView: View {
         if progress >= 1.0 {
             return .green
         } else if progress >= 0.7 {
-            return .blue
-        } else if progress >= 0.4 {
-            return .orange
+            return .yellow
         } else {
-            return .red
+            return .primary
         }
     }
 }
@@ -328,6 +371,7 @@ struct DailyGoalIntegration: View {
             // Daily goal progress view
             EnhancedDailyGoalProgressView(goalTracker: goalTracker)
                 .padding(.top)
+                .animation(.spring(), value: goalTracker.wordsViewedToday)
 
             // Word cards view
             EnhancedCardStackView(viewModel: wordViewModel)
@@ -348,5 +392,10 @@ struct DailyGoalIntegration: View {
         .overlay(
             GoalCompletionAnimation(isShowing: $showGoalCompletion)
         )
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) {
+            _ in
+            // Force update when UserDefaults change
+            goalTracker.objectWillChange.send()
+        }
     }
 }

@@ -46,8 +46,22 @@ struct MainAppView: View {
                     if let viewModel = appState.primaryWordViewModel {
                         EnhancedCardStackView(viewModel: viewModel)
                             .onChange(of: viewModel.wordsViewedToday) { newCount in
-                                // Update goal tracker
-                                goalTracker.recordWordViewed()
+                                // Directly increment the goal tracker's count to match the viewModel
+                                // instead of clearing and rebuilding
+                                print("MainAppView: onChange triggered with count: \(newCount)")
+
+                                if newCount > goalTracker.wordsViewedToday {
+                                    // Increment by the difference
+                                    let countToAdd = newCount - goalTracker.wordsViewedToday
+                                    print("MainAppView: Adding \(countToAdd) to goal tracker")
+                                    for _ in 0..<countToAdd {
+                                        goalTracker.recordWordViewed()
+                                    }
+                                } else if newCount < goalTracker.wordsViewedToday {
+                                    // If for some reason the count decreased, sync them
+                                    print("MainAppView: Syncing to lower count: \(newCount)")
+                                    goalTracker.wordsViewedToday = newCount
+                                }
 
                                 // Check if goal was just reached
                                 if goalTracker.isDailyGoalReached() && !showGoalCompletion
@@ -67,9 +81,37 @@ struct MainAppView: View {
                 }
             }
             .onAppear {
-                // Initialize the app
+                // Initialize the app and sync the goal tracker
+                print("MainAppView: onAppear called")
+
                 if let viewModel = appState.primaryWordViewModel {
+                    print(
+                        "MainAppView: Initializing with \(viewModel.wordsViewedToday) words viewed today"
+                    )
+
+                    // Set daily goals
                     viewModel.dailyGoal = appState.userPreferences.dailyGoal
+                    goalTracker.dailyGoal = appState.userPreferences.dailyGoal
+
+                    // Sync word counts between the models
+                    if viewModel.wordsViewedToday != goalTracker.wordsViewedToday {
+                        print(
+                            "MainAppView: Syncing word counts: \(viewModel.wordsViewedToday) vs \(goalTracker.wordsViewedToday)"
+                        )
+
+                        // Ensure both counters have the same value
+                        let maxCount = max(viewModel.wordsViewedToday, goalTracker.wordsViewedToday)
+                        viewModel.wordsViewedToday = maxCount
+                        goalTracker.wordsViewedToday = maxCount
+                    }
+
+                    // Update goal completion status
+                    goalTracker.hasReachedGoalToday = goalTracker.isDailyGoalReached()
+                    if goalTracker.hasReachedGoalToday {
+                        print(
+                            "MainAppView: Daily goal already reached: \(goalTracker.wordsViewedToday)/\(goalTracker.dailyGoal)"
+                        )
+                    }
                 }
             }
             .fullScreenCover(isPresented: $showQuiz) {

@@ -467,6 +467,14 @@ struct EnhancedCardStackView: View {
         // Increment the counter
         viewModel.incrementWordsViewedToday()
 
+        // Post notification for UI updates
+        NotificationCenter.default.post(name: .wordCardSwiped, object: nil)
+
+        // Force the model to notify changes
+        DispatchQueue.main.async {
+            self.viewModel.objectWillChange.send()
+        }
+
         // After animation, move to next card
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             // Check if we've completed a full cycle
