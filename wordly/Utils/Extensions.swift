@@ -2,10 +2,15 @@ import SwiftUI
 
 // MARK: - Color Extensions
 extension Color {
-    static let background = Color(UIColor.systemBackground)
-    static let cardBackground = Color(UIColor.secondarySystemBackground)
-    static let textPrimary = Color(UIColor.label)
-    static let textSecondary = Color(UIColor.secondaryLabel)
+  
+    static let background = Color(hex: "121217")
+    static let cardBackground = Color(hex: "1E1E24")
+    static let primary = Color(hex: "7F5AF0")
+    static let secondary = Color(hex: "E45858")
+    static let accent = Color(hex: "72F2EB")
+    static let textPrimary = Color(hex: "FFFFFE")
+    static let textSecondary = Color(hex: "94A1B2")
+
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
