@@ -3,13 +3,13 @@ import SwiftUI
 // MARK: - Extensions for UI
 
 extension Color {
-    static let background = Color(hex: "F8F7F2")
-    static let cardBackground = Color(hex: "FFFFFF")
-    static let primary = Color(hex: "3A7D44")
-    static let secondary = Color(hex: "FF6B6B")
-    static let accent = Color(hex: "FFD166")
-    static let textPrimary = Color(hex: "333333")
-    static let textSecondary = Color(hex: "666666")
+    static let background = Color(hex: "121217")
+    static let cardBackground = Color(hex: "1E1E24")
+    static let primary = Color(hex: "7F5AF0")
+    static let secondary = Color(hex: "E45858")
+    static let accent = Color(hex: "72F2EB")
+    static let textPrimary = Color(hex: "FFFFFE")
+    static let textSecondary = Color(hex: "94A1B2")
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -41,12 +41,12 @@ extension Color {
 }
 
 extension Font {
-    static let largeTitle = Font.system(size: 34, weight: .bold, design: .rounded)
-    static let title = Font.system(size: 28, weight: .bold, design: .rounded)
-    static let headline = Font.system(size: 22, weight: .semibold, design: .rounded)
-    static let body = Font.system(size: 17, weight: .regular, design: .rounded)
-    static let caption = Font.system(size: 14, weight: .medium, design: .rounded)
-    static let small = Font.system(size: 12, weight: .regular, design: .rounded)
+    static let largeTitle = Font.system(size: 40, weight: .bold, design: .default)
+    static let title = Font.system(size: 32, weight: .bold, design: .default)
+    static let headline = Font.system(size: 24, weight: .semibold, design: .default)
+    static let body = Font.system(size: 18, weight: .regular, design: .default)
+    static let caption = Font.system(size: 16, weight: .medium, design: .default)
+    static let small = Font.system(size: 14, weight: .regular, design: .default)
 }
 
 // MARK: - UserDefaults Storage Manager

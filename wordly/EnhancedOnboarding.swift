@@ -69,8 +69,6 @@ struct EnhancedOnboardingView: View {
                     })
                 }
             }
-            .padding()
-            .background(Color.background)
         }
     }
 }
@@ -154,25 +152,32 @@ struct DailyGoalSettingView: View {
     @Binding var selectedGoal: Int
     let onContinue: () -> Void
     let onBack: () -> Void
+    @State private var animateContent = false
 
     let goalOptions = [5, 10, 15, 20, 25]
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Set Your Daily Goal")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.textPrimary)
-                .padding(.top)
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 12) {
+                Text("Set Your Daily Goal")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.textPrimary)
 
-            Text("How many words would you like to learn each day?")
-                .font(.body)
-                .foregroundColor(.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                Text("How many words would you like to learn each day?")
+                    .font(.body)
+                    .foregroundColor(.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            .padding(.top, 20)
+            .opacity(animateContent ? 1 : 0)
+            .offset(y: animateContent ? 0 : 20)
 
+            // Goal selection cards
             ScrollView {
-                VStack(spacing: 15) {
+                VStack(spacing: 16) {
                     ForEach(goalOptions, id: \.self) { goal in
                         DailyGoalCard(
                             goal: goal,
@@ -182,30 +187,42 @@ struct DailyGoalSettingView: View {
                                 selectedGoal = goal
                             }
                         )
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 30)
+                        .animation(
+                            .easeOut(duration: 0.4)
+                                .delay(0.1 + Double(goal % 10) * 0.05),
+                            value: animateContent
+                        )
                     }
                 }
-                .padding()
+                .padding(.horizontal)
             }
 
             Spacer()
 
             // Progress indicator
             ProgressIndicator(currentStep: 3, totalSteps: 4)
-                .padding(.bottom)
+                .padding(.bottom, 8)
+                .opacity(animateContent ? 1 : 0)
 
-            HStack {
+            // Navigation buttons
+            HStack(spacing: 20) {
                 Button(action: onBack) {
                     HStack {
                         Image(systemName: "chevron.left")
                         Text("Back")
                     }
                     .font(.headline)
-                    .foregroundColor(.primary)
-                    .padding()
+                    .foregroundColor(.textSecondary)
+                    .padding(.vertical, 18)
                     .frame(maxWidth: .infinity)
                     .background(Color.cardBackground)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.textSecondary.opacity(0.2), lineWidth: 1)
+                    )
                 }
 
                 Button(action: onContinue) {
@@ -214,18 +231,56 @@ struct DailyGoalSettingView: View {
                         Image(systemName: "chevron.right")
                     }
                     .font(.headline)
-                    .foregroundColor(.white)
-                    .padding()
+                    .fontWeight(.bold)
+                    .foregroundColor(.textPrimary)
+                    .padding(.vertical, 18)
                     .frame(maxWidth: .infinity)
-                    .background(Color.primary)
-                    .cornerRadius(10)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.primary, Color.primary.opacity(0.8)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(16)
+                    .shadow(color: Color.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 30)
+            .opacity(animateContent ? 1 : 0)
+            .offset(y: animateContent ? 0 : 30)
         }
-        .padding()
-        .background(Color.background)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            ZStack {
+                Color.background
+
+                // Decorative elements
+                VStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.03))
+                        .frame(width: 250, height: 250)
+                        .offset(x: UIScreen.main.bounds.width * 0.4, y: -30)
+
+                    Spacer()
+                }
+
+                VStack {
+                    Spacer()
+                    Circle()
+                        .fill(Color.accent.opacity(0.03))
+                        .frame(width: 200, height: 200)
+                        .offset(x: -UIScreen.main.bounds.width * 0.3, y: 0)
+                }
+            }
+            .ignoresSafeArea()
+        )
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                animateContent = true
+            }
+        }
     }
 }
 
@@ -236,35 +291,71 @@ struct DailyGoalCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 20) {
+                // Goal number with visual indicator
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color.primary.opacity(0.2) : Color.cardBackground)
+                        .frame(width: 60, height: 60)
+
+                    Text("\(goal)")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(isSelected ? Color.primary : Color.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
                     Text("\(goal) Words")
                         .font(.headline)
-                        .foregroundColor(isSelected ? .white : .textPrimary)
+                        .fontWeight(.bold)
+                        .foregroundColor(isSelected ? .textPrimary : .textSecondary)
 
                     Text(goalDescription(for: goal))
                         .font(.caption)
-                        .foregroundColor(isSelected ? .white.opacity(0.8) : .textSecondary)
+                        .foregroundColor(isSelected ? .textSecondary : .textSecondary.opacity(0.7))
+                        .lineLimit(1)
                 }
 
                 Spacer()
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.white)
-                        .font(.title3)
+                        .foregroundColor(.primary)
+                        .font(.headline)
                 }
             }
-            .padding()
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.primary : Color.cardBackground)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        isSelected
+                            ? Color.cardBackground.opacity(0.7) : Color.cardBackground.opacity(0.3))
             )
+            // Apply conditional overlay based on selection state
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.primary : Color.gray.opacity(0.2), lineWidth: 2)
+                Group {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.primary, Color.accent]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
+                    } else {
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.clear, lineWidth: 2)
+                    }
+                }
             )
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .shadow(
+                color: isSelected ? Color.primary.opacity(0.2) : Color.black.opacity(0.05),
+                radius: isSelected ? 10 : 5,
+                x: 0,
+                y: isSelected ? 4 : 2
+            )
         }
         .buttonStyle(PlainButtonStyle())
     }

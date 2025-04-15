@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AnimatedBackgroundView: View {
     @State private var phase = 0.0
-    
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -11,7 +11,7 @@ struct AnimatedBackgroundView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            
+
             // Animated circles
             ForEach(0..<5) { i in
                 Circle()
@@ -37,14 +37,14 @@ struct CustomButton: View {
     let icon: String?
     let isPrimary: Bool
     let action: () -> Void
-    
+
     init(text: String, icon: String? = nil, isPrimary: Bool = true, action: @escaping () -> Void) {
         self.text = text
         self.icon = icon
         self.isPrimary = isPrimary
         self.action = action
     }
-    
+
     var body: some View {
         Button(action: {
             HapticFeedbackManager.shared.playSelection()
@@ -75,7 +75,7 @@ struct CustomButton: View {
 struct ProgressIndicator: View {
     let currentStep: Int
     let totalSteps: Int
-    
+
     var body: some View {
         HStack(spacing: 8) {
             ForEach(0..<totalSteps, id: \.self) { index in
@@ -89,7 +89,7 @@ struct ProgressIndicator: View {
 
 struct ConfettiView: View {
     @State private var isAnimating = false
-    
+
     var body: some View {
         ZStack {
             ForEach(0..<50, id: \.self) { i in
@@ -110,21 +110,21 @@ struct ConfettiView: View {
             isAnimating = true
         }
     }
-    
+
     private func confettiColor(for index: Int) -> Color {
         let colors: [Color] = [.primary, .secondary, .accent]
         return colors[index % colors.count]
     }
-    
+
     private func randomOffset() -> CGFloat {
-        return CGFloat.random(in: -UIScreen.main.bounds.width/2...UIScreen.main.bounds.width/2)
+        return CGFloat.random(in: -UIScreen.main.bounds.width / 2...UIScreen.main.bounds.width / 2)
     }
 }
 
 struct ConfettiPiece: View {
     let color: Color
     let rotation: Double
-    
+
     var body: some View {
         Rectangle()
             .fill(color)
@@ -142,7 +142,7 @@ extension View {
 
 struct PulseAnimation: ViewModifier {
     @State private var isAnimating = false
-    
+
     func body(content: Content) -> some View {
         content
             .scaleEffect(isAnimating ? 1.05 : 1.0)
