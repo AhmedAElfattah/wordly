@@ -157,27 +157,30 @@ struct DailyGoalSettingView: View {
     let goalOptions = [5, 10, 15, 20, 25]
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             // Header
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 Text("Set Your Daily Goal")
-                    .font(.title)
+                    .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("How many words would you like to learn each day?")
-                    .font(.body)
+                .font(.title3)
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.top, 20)
+            .padding(.top, 16)
             .opacity(animateContent ? 1 : 0)
             .offset(y: animateContent ? 0 : 20)
 
             // Goal selection cards
-            ScrollView {
-                VStack(spacing: 16) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
                     ForEach(goalOptions, id: \.self) { goal in
                         DailyGoalCard(
                             goal: goal,
@@ -207,15 +210,15 @@ struct DailyGoalSettingView: View {
                 .opacity(animateContent ? 1 : 0)
 
             // Navigation buttons
-            HStack(spacing: 20) {
+            HStack(spacing: 16) {
                 Button(action: onBack) {
                     HStack {
                         Image(systemName: "chevron.left")
                         Text("Back")
                     }
-                    .font(.headline)
+                    .font(.title3)
                     .foregroundColor(.textSecondary)
-                    .padding(.vertical, 18)
+                    .padding(.vertical, 14)
                     .frame(maxWidth: .infinity)
                     .background(Color.cardBackground)
                     .cornerRadius(16)
@@ -230,10 +233,10 @@ struct DailyGoalSettingView: View {
                         Text("Continue")
                         Image(systemName: "chevron.right")
                     }
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.title3)
+                    .fontWeight(.semibold)
                     .foregroundColor(.textPrimary)
-                    .padding(.vertical, 18)
+                    .padding(.vertical, 14)
                     .frame(maxWidth: .infinity)
                     .background(
                         LinearGradient(
@@ -243,11 +246,11 @@ struct DailyGoalSettingView: View {
                         )
                     )
                     .cornerRadius(16)
-                    .shadow(color: Color.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.primary.opacity(0.3), radius: 6, x: 0, y: 3)
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom, 30)
+            .padding(.bottom, 24)
             .opacity(animateContent ? 1 : 0)
             .offset(y: animateContent ? 0 : 30)
         }
@@ -291,40 +294,41 @@ struct DailyGoalCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 20) {
+            HStack(spacing: 16) {
                 // Goal number with visual indicator
                 ZStack {
                     Circle()
                         .fill(isSelected ? Color.primary.opacity(0.2) : Color.cardBackground)
-                        .frame(width: 60, height: 60)
+                        .frame(width: 50, height: 50)
 
                     Text("\(goal)")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(isSelected ? Color.primary : Color.textSecondary)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("\(goal) Words")
-                        .font(.headline)
-                        .fontWeight(.bold)
+                    .font(.title3)
+                        .fontWeight(.semibold)
                         .foregroundColor(isSelected ? .textPrimary : .textSecondary)
+                        .lineLimit(1)
 
                     Text(goalDescription(for: goal))
-                        .font(.caption)
+                    .font(.body)
                         .foregroundColor(isSelected ? .textSecondary : .textSecondary.opacity(0.7))
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.primary)
-                        .font(.headline)
+                        .font(.title3)
                 }
             }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(
@@ -383,4 +387,147 @@ struct UserPreferences {
     var difficultyLevel: DifficultyLevel = .intermediate
     var selectedCategories: [WordCategory] = []
     var dailyGoal: Int = 10
+}
+
+// MARK: - Goal Selection View
+struct GoalSelectionView: View {
+    @Binding var selectedGoal: Int
+    @Binding var currentStep: EnhancedOnboardingViewModel.OnboardingStep
+
+    let availableGoals = [5, 10, 15, 20, 25]
+
+    var body: some View {
+        VStack(spacing: 30) {
+            Text("Set Your Daily Goal")
+            .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("How many words would you like to learn each day?")
+            .font(.title3)
+                .foregroundColor(.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Goal options
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    ForEach(availableGoals, id: \.self) { goal in
+                        GoalOptionCard(
+                            goal: goal,
+                            description: goalDescription(for: goal),
+                            isSelected: selectedGoal == goal,
+                            action: { selectedGoal = goal }
+                        )
+                    }
+                }
+                .padding(.vertical)
+            }
+
+            // Continue button
+            Button(action: {
+                // Save to UserDefaults
+                UserDefaultsManager.shared.saveDailyGoal(selectedGoal)
+
+                // Play selection sound and haptic feedback
+                SoundManager.shared.playButtonSound()
+                HapticFeedbackManager.shared.playSelection()
+
+                // Move to next step
+                withAnimation {
+                    currentStep = .completion
+                }
+            }) {
+                Text("Continue")
+                .font(.title3)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.primary)
+                    .cornerRadius(10)
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 30)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.background.ignoresSafeArea())
+    }
+
+    private func goalDescription(for goal: Int) -> String {
+        switch goal {
+        case 5:
+            return "Perfect for busy days"
+        case 10:
+            return "Recommended for most users"
+        case 15:
+            return "For dedicated learners"
+        case 20:
+            return "For serious vocabulary building"
+        case 25:
+            return "For vocabulary enthusiasts"
+        default:
+            return ""
+        }
+    }
+}
+
+// MARK: - Goal Option Card
+struct GoalOptionCard: View {
+    let goal: Int
+    let description: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: {
+            SoundManager.shared.playButtonSound()
+            HapticFeedbackManager.shared.playSelection()
+            action()
+        }) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(goal) words")
+                    .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(isSelected ? .white : .textPrimary)
+                        .lineLimit(1)
+
+                    Text(description)
+                    .font(.body)
+                        .foregroundColor(isSelected ? .white.opacity(0.9) : .textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 6)
+
+                Spacer()
+
+                // Selected indicator
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.white)
+                        .font(.title3)
+                        .padding(.leading, 6)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.primary : Color.cardBackground)
+            )
+            .shadow(
+                color: isSelected ? Color.primary.opacity(0.2) : Color.black.opacity(0.05),
+                radius: isSelected ? 10 : 5,
+                x: 0,
+                y: isSelected ? 4 : 2
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
 }

@@ -251,7 +251,7 @@ struct QuizView: View {
                     // Question card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Which word matches this definition?")
-                            .font(.title2)
+                            .font(.title3)
                             .fontWeight(.semibold)
                             .foregroundColor(.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)

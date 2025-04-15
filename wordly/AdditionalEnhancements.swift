@@ -33,10 +33,14 @@ struct ReducedMotionCardView: View {
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.textPrimary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(word.pronunciation)
                     .font(.subheadline)
                     .foregroundColor(.textSecondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(word.partOfSpeech)
                     .font(.caption)
@@ -46,6 +50,7 @@ struct ReducedMotionCardView: View {
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(4)
             }
+            .padding(.top, 24)  // Add padding to position the word higher in the card
 
             // Mastery indicator
             EnhancedMasteryIndicatorView(level: word.masteryLevel)
@@ -53,28 +58,44 @@ struct ReducedMotionCardView: View {
             Divider()
 
             // Definition
-            Text(word.definition)
-                .font(.body)
-                .foregroundColor(.textPrimary)
-                .padding(.vertical, 8)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Definition")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.textSecondary)
+
+                Text(word.definition)
+                    .font(.body)
+                    .foregroundColor(.textPrimary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             // Example
-            Text(word.example)
-                .font(.body)
-                .italic()
-                .foregroundColor(.textSecondary)
-                .padding(.bottom, 8)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Example")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.textSecondary)
 
-            Spacer()
+                Text(word.example)
+                    .font(.body)
+                    .italic()
+                    .foregroundColor(.textSecondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // Add extra space at the bottom to push content up
+            Spacer(minLength: 100)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)  // Align to the top
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.cardBackground)
                 .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
         )
-        .padding(.horizontal, 20)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(AccessibilityEnhancements.cardSwipeDescription(for: word))
     }

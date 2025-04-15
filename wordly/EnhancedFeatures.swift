@@ -79,71 +79,97 @@ struct EnhancedWordCardView: View {
     @State private var isShowingMastery = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Word and pronunciation
-            VStack(alignment: .leading, spacing: 4) {
-                Text(word.term)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.textPrimary)
+        ScrollView(showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Word and pronunciation
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(word.term)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.textPrimary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(word.pronunciation)
-                    .font(.subheadline)
-                    .foregroundColor(.textSecondary)
+                    Text(word.pronunciation)
+                        .font(.subheadline)
+                        .foregroundColor(.textSecondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(word.partOfSpeech)
-                    .font(.caption)
-                    .foregroundColor(.textSecondary)
-                    .padding(.vertical, 2)
-                    .padding(.horizontal, 8)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(4)
-            }
-            .opacity(1.0)
+                    Text(word.partOfSpeech)
+                        .font(.caption)
+                        .foregroundColor(.textSecondary)
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 8)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .opacity(1.0)
+                .padding(.top, 24)
 
-            // Mastery indicator with animation
-            EnhancedMasteryIndicatorView(level: word.masteryLevel)
-                .opacity(isShowingMastery ? 1 : 0)
-                .offset(y: isShowingMastery ? 0 : 20)
-                .animation(
-                    .spring(response: 0.5, dampingFraction: 0.7).delay(0.1), value: isShowingMastery
-                )
+                // Mastery indicator with animation
+                EnhancedMasteryIndicatorView(level: word.masteryLevel)
+                    .opacity(isShowingMastery ? 1 : 0)
+                    .offset(y: isShowingMastery ? 0 : 20)
+                    .animation(
+                        .spring(response: 0.5, dampingFraction: 0.7).delay(0.1),
+                        value: isShowingMastery
+                    )
 
-            Divider()
+                Divider()
 
-            // Definition with animation
-            Text(word.definition)
-                .font(.body)
-                .foregroundColor(.textPrimary)
-                .padding(.vertical, 8)
+                // Definition with animation
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Definition")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.textSecondary)
+
+                    Text(word.definition)
+                        .font(.body)
+                        .foregroundColor(.textPrimary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 .opacity(isShowingDefinition ? 1 : 0)
                 .offset(y: isShowingDefinition ? 0 : 20)
                 .animation(
                     .spring(response: 0.5, dampingFraction: 0.7).delay(0.2),
-                    value: isShowingDefinition)
+                    value: isShowingDefinition
+                )
 
-            // Example with animation
-            Text(word.example)
-                .font(.body)
-                .italic()
-                .foregroundColor(.textSecondary)
-                .padding(.bottom, 8)
+                // Example with animation
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Example")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.textSecondary)
+
+                    Text(word.example)
+                        .font(.body)
+                        .italic()
+                        .foregroundColor(.textSecondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 .opacity(isShowingExample ? 1 : 0)
                 .offset(y: isShowingExample ? 0 : 20)
                 .animation(
-                    .spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: isShowingExample
+                    .spring(response: 0.5, dampingFraction: 0.7).delay(0.3),
+                    value: isShowingExample
                 )
 
-            Spacer()
+                // Add extra space at the bottom to push content up
+                Spacer(minLength: 100)
+            }
+            .padding(20)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.cardBackground)
                 .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
         )
-        .padding(.horizontal, 20)
         .onAppear {
             // Staggered animations for content
             withAnimation(.easeOut(duration: 0.3)) {
@@ -814,7 +840,7 @@ struct TutorialView: View {
     ]
 
     var body: some View {
-        VStack {
+        VStack(spacing: 10) {
             // Close button
             HStack {
                 Spacer()
@@ -838,6 +864,7 @@ struct TutorialView: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
             .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.7)
 
             // Navigation buttons
             HStack {
@@ -855,6 +882,9 @@ struct TutorialView: View {
                         .padding()
                         .foregroundColor(.primary)
                     }
+                } else {
+                    // Empty view to maintain layout balance
+                    Spacer().frame(width: 100)
                 }
 
                 Spacer()
@@ -888,6 +918,7 @@ struct TutorialView: View {
             }
             .padding()
         }
+        .background(Color.background.edgesIgnoringSafeArea(.all))
     }
 }
 
@@ -904,31 +935,41 @@ struct TutorialPageView: View {
     let page: TutorialPage
 
     var body: some View {
-        VStack(spacing: 30) {
-            Image(systemName: page.imageName)
-                .font(.system(size: 80))
-                .foregroundColor(.primary)
-                .padding()
-                .background(
-                    Circle()
-                        .fill(Color.gray.opacity(0.1))
-                        .frame(width: 150, height: 150)
-                )
-                .addPulseAnimation()
+        ScrollView {
+            VStack(spacing: 30) {
+                Image(systemName: page.imageName)
+                    .font(.system(size: 70))
+                    .foregroundColor(.primary)
+                    .padding()
+                    .background(
+                        Circle()
+                            .fill(Color.gray.opacity(0.1))
+                            .frame(width: 150, height: 150)
+                    )
+                    .scaleEffect(1.0)
+                    .animation(
+                        .easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: UUID())
 
-            Text(page.title)
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.textPrimary)
+                Text(page.title)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text(page.description)
-                .font(.body)
-                .foregroundColor(.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                Text(page.description)
+                    .font(.body)
+                    .foregroundColor(.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Spacer()
+                Spacer(minLength: 40)
+            }
+            .padding(.top, 40)
+            .padding(.bottom, 20)
         }
-        .padding(.top, 60)
     }
 }

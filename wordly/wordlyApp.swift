@@ -144,6 +144,8 @@ struct WordRow: View {
                 Text(word.term)
                     .font(.headline)
                     .foregroundColor(.textPrimary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
 
@@ -159,11 +161,12 @@ struct WordRow: View {
             Text(word.partOfSpeech)
                 .font(.caption)
                 .foregroundColor(.textSecondary)
+                .lineLimit(nil)
 
             Text(word.definition)
                 .font(.subheadline)
                 .foregroundColor(.textSecondary)
-                .lineLimit(2)
+                .lineLimit(3)
                 .padding(.top, 2)
         }
         .padding(.vertical, 8)
