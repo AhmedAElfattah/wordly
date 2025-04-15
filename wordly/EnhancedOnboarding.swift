@@ -13,7 +13,6 @@ struct EnhancedOnboardingView: View {
                 case .welcome:
                     WelcomeView(onContinue: {
                         SoundManager.shared.playButtonSound()
-                        HapticFeedbackManager.shared.playLightTap()
                         viewModel.moveToNextStep()
                     })
                 case .difficultySelection:
@@ -21,12 +20,10 @@ struct EnhancedOnboardingView: View {
                         selectedDifficulty: $viewModel.selectedDifficulty,
                         onContinue: {
                             SoundManager.shared.playButtonSound()
-                            HapticFeedbackManager.shared.playLightTap()
                             viewModel.moveToNextStep()
                         },
                         onBack: {
                             SoundManager.shared.playButtonSound()
-                            HapticFeedbackManager.shared.playLightTap()
                             viewModel.moveToPreviousStep()
                         }
                     )
@@ -35,12 +32,10 @@ struct EnhancedOnboardingView: View {
                         selectedCategories: $viewModel.selectedCategories,
                         onContinue: {
                             SoundManager.shared.playButtonSound()
-                            HapticFeedbackManager.shared.playLightTap()
                             viewModel.moveToNextStep()
                         },
                         onBack: {
                             SoundManager.shared.playButtonSound()
-                            HapticFeedbackManager.shared.playLightTap()
                             viewModel.moveToPreviousStep()
                         },
                         isCategorySelected: viewModel.isCategorySelected,
@@ -52,12 +47,10 @@ struct EnhancedOnboardingView: View {
                         selectedGoal: $viewModel.selectedDailyGoal,
                         onContinue: {
                             SoundManager.shared.playButtonSound()
-                            HapticFeedbackManager.shared.playLightTap()
                             viewModel.moveToNextStep()
                         },
                         onBack: {
                             SoundManager.shared.playButtonSound()
-                            HapticFeedbackManager.shared.playLightTap()
                             viewModel.moveToPreviousStep()
                         }
                     )
@@ -186,7 +179,6 @@ struct DailyGoalSettingView: View {
                             isSelected: selectedGoal == goal,
                             action: {
                                 SoundManager.shared.playButtonSound()
-                                HapticFeedbackManager.shared.playLightTap()
                                 selectedGoal = goal
                             }
                         )
