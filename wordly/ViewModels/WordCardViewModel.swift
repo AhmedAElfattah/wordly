@@ -9,6 +9,7 @@ class WordCardViewModel: ObservableObject {
     @Published var wordsViewedToday: Int = 0
     @Published var hasShownDailyGoalAnimation: Bool = false
     @Published var quizWords: [Word] = []
+    @Published var isDailyGoalCompleted: Bool = false
 
     var dailyGoal = 10
     private var cycleCount = 0
@@ -20,8 +21,6 @@ class WordCardViewModel: ObservableObject {
     }
 
     enum SwipeDirection {
-        case up
-        case down
         case left
         case right
     }
@@ -40,6 +39,9 @@ class WordCardViewModel: ObservableObject {
         wordsViewedToday = UserDefaultsManager.shared.getWordsViewedToday()
         hasShownDailyGoalAnimation = false
         dailyGoal = UserDefaultsManager.shared.getDailyGoal()
+        
+        // Check if daily goal is already completed
+        isDailyGoalCompleted = wordsViewedToday >= dailyGoal
     }
 
     private func saveProgress() {
@@ -48,7 +50,7 @@ class WordCardViewModel: ObservableObject {
     }
 
     func markCurrentWordAsKnown() {
-        // Update mastery level when swiping up (marking as known)
+
         if words[currentIndex].masteryLevel != .mastered {
             let oldLevel = words[currentIndex].masteryLevel
             let newLevel = oldLevel.next()
@@ -60,10 +62,10 @@ class WordCardViewModel: ObservableObject {
             var updatedWord = words[currentIndex]
             updatedWord.saveMasteryLevel()
 
-            // Play haptic feedback and sound if level increased
+            // Play haptic feedback if level increased
             if newLevel.rawValue > oldLevel.rawValue {
-                HapticFeedbackManager.shared.playMilestonePattern()
-                SoundManager.shared.playMilestoneSound()
+                HapticFeedbackManager.shared.playProgressiveHaptic(for: newLevel)
+                VisualFeedbackManager.shared.playMilestoneFeedback()
             }
         }
 
@@ -74,14 +76,19 @@ class WordCardViewModel: ObservableObject {
     }
 
     func incrementWordsViewedToday() {
+      if isDailyGoalReached() {
+        return
+      }
         wordsViewedToday += 1
         saveProgress()
 
+        // Check if daily goal is now completed
+        if wordsViewedToday >= dailyGoal && !isDailyGoalCompleted {
+            isDailyGoalCompleted = true
+        }
+
         // Post a notification that the word count has changed
         NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: nil)
-
-        // Print debug info
-        print("Words viewed today: \(wordsViewedToday)")
     }
 
     func isDailyGoalReached() -> Bool {
@@ -89,8 +96,16 @@ class WordCardViewModel: ObservableObject {
     }
 
     func completedCycle() {
+      if isDailyGoalReached() {
+        return
+      }
         cycleCount += 1
         hasShownDailyGoalAnimation = false
+    }
+
+    func shouldShowCyclePrompt() -> Bool {
+        // Only show cycle prompt if daily goal is not completed
+        return !isDailyGoalCompleted
     }
 
     func shouldShowQuiz() -> Bool {
@@ -121,9 +136,7 @@ class WordCardViewModel: ObservableObject {
 
     func loadWordsForCategories(_ categories: [WordCategory]) {
         // Filter sample words by selected categories
-        words = Word.sampleWords.filter { word in
-            categories.contains(word.category)
-        }
+        words = WordProvider.shared.getWords(for: categories)
 
         // Load saved mastery levels for each word
         for i in 0..<words.count {
@@ -133,5 +146,8 @@ class WordCardViewModel: ObservableObject {
         currentIndex = 0
         wordsViewedToday = UserDefaultsManager.shared.getWordsViewedToday()
         hasShownDailyGoalAnimation = false
+        
+        // Check if daily goal is already completed
+        isDailyGoalCompleted = wordsViewedToday >= dailyGoal
     }
 }
