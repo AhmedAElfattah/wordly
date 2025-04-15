@@ -1,99 +1,98 @@
 import SwiftUI
 
-struct MainView: View {
-    @EnvironmentObject var appState: AppState
-    @StateObject private var goalTracker = DailyGoalTracker()
-    @State private var showGoalCompletion = false
-    @State private var isSoundEnabled = true
-    @State private var animatedProgress: Double = 0
+// MARK: - Daily Goal Progress Tracking
+
+class DailyGoalTracker: ObservableObject {
+    @Published var wordsViewedToday: Int = 0
+    @Published var dailyGoal: Int = 10
+    @Published var hasReachedGoalToday: Bool = false
+    @Published var streakDays: Int = 0
+    @Published var bestStreak: Int = 0
+    @Published var lastCompletionDate: Date?
     
-    var body: some View {
-        ZStack {
-            Color.background.ignoresSafeArea()
+    init(dailyGoal: Int = 10) {
+        self.dailyGoal = dailyGoal
+        loadSavedProgress()
+    }
+    
+    // Load saved progress (in a real app, this would use UserDefaults or CoreData)
+    private func loadSavedProgress() {
+        // Simulate loading from persistent storage
+        wordsViewedToday = 0
+        streakDays = 1
+        bestStreak = 5
+        hasReachedGoalToday = false
+        lastCompletionDate = nil
+    }
+    
+    // Save progress (in a real app, this would use UserDefaults or CoreData)
+    private func saveProgress() {
+        // Simulate saving to persistent storage
+        print("Saving progress: \(wordsViewedToday)/\(dailyGoal) words, streak: \(streakDays) days")
+    }
+    
+    // Record a viewed word
+    func recordWordViewed() {
+        wordsViewedToday += 1
+        
+        // Check if daily goal is reached
+        if wordsViewedToday >= dailyGoal && !hasReachedGoalToday {
+            hasReachedGoalToday = true
+            lastCompletionDate = Date()
+            updateStreak()
+        }
+        
+        saveProgress()
+    }
+    
+    // Update streak based on completion dates
+    private func updateStreak() {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if let lastDate = lastCompletionDate {
+            let lastDay = Calendar.current.startOfDay(for: lastDate)
             
-            VStack {
-                // App header
-                HStack {
-                    Text("Wordly")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.textPrimary)
-                    
-                    Spacer()
-                    
-                    // Sound toggle
-                    SoundToggleView(isSoundEnabled: $isSoundEnabled)
-                        .onChange(of: isSoundEnabled) { enabled in
-                            SoundManager.shared.toggleSound(enabled: enabled)
-                        }
-                }
-                .padding(.horizontal)
-                .padding(.top)
+            // Check if this is a new day
+            if today != lastDay {
+                let components = Calendar.current.dateComponents([.day], from: lastDay, to: today)
                 
-                // Daily goal progress
-                EnhancedDailyGoalProgressView(goalTracker: goalTracker, animatedProgress: $animatedProgress)
-                    .padding(.top, 8)
-                
-                // Main content - Vertical scrolling word cards
-                if let viewModel = appState.primaryWordViewModel {
-                    EnhancedVerticalCardStackView(viewModel: viewModel)
-                        .onChange(of: viewModel.wordsViewedToday) { newCount in
-                            // Update goal tracker
-                            goalTracker.recordWordViewed()
-                            
-                            // Safely animate the progress
-                            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                animatedProgress = goalTracker.getProgressPercentage()
-                            }
-                            
-                            // Check if goal was just reached
-                            if goalTracker.isDailyGoalReached() && !showGoalCompletion && !goalTracker.hasReachedGoalToday {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    showGoalCompletion = true
-                                }
-                            }
-                        }
+                if components.day == 1 {
+                    // Consecutive day
+                    streakDays += 1
+                    if streakDays > bestStreak {
+                        bestStreak = streakDays
+                    }
+                } else if components.day ?? 0 > 1 {
+                    // Streak broken
+                    streakDays = 1
                 }
-            }
-            
-            // Goal completion overlay
-            if showGoalCompletion {
-                GoalCompletionAnimation(isShowing: $showGoalCompletion)
             }
         }
-        .onAppear {
-            // Initialize the app
-            if let viewModel = appState.primaryWordViewModel {
-                viewModel.dailyGoal = appState.userPreferences.dailyGoal
-            }
-            
-            // Initialize animated progress
-            animatedProgress = goalTracker.getProgressPercentage()
-        }
+        
+        saveProgress()
+    }
+    
+    // Reset daily progress (called at the start of a new day)
+    func resetDailyProgress() {
+        wordsViewedToday = 0
+        hasReachedGoalToday = false
+        saveProgress()
+    }
+    
+    // Check if daily goal is reached
+    func isDailyGoalReached() -> Bool {
+        return wordsViewedToday >= dailyGoal
+    }
+    
+    // Get progress percentage
+    func getProgressPercentage() -> Double {
+        return min(Double(wordsViewedToday) / Double(dailyGoal), 1.0)
     }
 }
 
-struct SoundToggleView: View {
-    @Binding var isSoundEnabled: Bool
-    
-    var body: some View {
-        Button(action: {
-            isSoundEnabled.toggle()
-            HapticFeedbackManager.shared.playSelection()
-        }) {
-            Image(systemName: isSoundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                .font(.title3)
-                .foregroundColor(.primary)
-                .padding()
-                .background(Circle().fill(Color.cardBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-        }
-    }
-}
-
+// MARK: - Enhanced Daily Goal Progress View
 struct EnhancedDailyGoalProgressView: View {
     @ObservedObject var goalTracker: DailyGoalTracker
-    @Binding var animatedProgress: Double
     @State private var showAnimation = false
     
     var body: some View {
@@ -130,7 +129,7 @@ struct EnhancedDailyGoalProgressView: View {
                 )
             }
             
-            // Progress bar - FIXED ANIMATION
+            // Progress bar
             ZStack(alignment: .leading) {
                 // Background
                 Rectangle()
@@ -138,11 +137,12 @@ struct EnhancedDailyGoalProgressView: View {
                     .foregroundColor(Color.gray.opacity(0.2))
                     .cornerRadius(5)
                 
-                // Progress - Using animatedProgress instead of direct calculation
+                // Progress
                 Rectangle()
-                    .frame(width: max(0, min(CGFloat(animatedProgress) * (UIScreen.main.bounds.width - 40), UIScreen.main.bounds.width - 40)), height: 10)
+                    .frame(width: CGFloat(goalTracker.getProgressPercentage()) * UIScreen.main.bounds.width - 40, height: 10)
                     .foregroundColor(progressColor)
                     .cornerRadius(5)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: goalTracker.wordsViewedToday)
                 
                 // Milestone markers
                 ForEach(1..<goalTracker.dailyGoal, id: \.self) { milestone in
@@ -185,7 +185,7 @@ struct EnhancedDailyGoalProgressView: View {
     }
     
     private var progressColor: Color {
-        let progress = animatedProgress
+        let progress = goalTracker.getProgressPercentage()
         
         if progress >= 1.0 {
             return .green
@@ -199,6 +199,7 @@ struct EnhancedDailyGoalProgressView: View {
     }
 }
 
+// MARK: - Goal Completion Animation
 struct GoalCompletionAnimation: View {
     @Binding var isShowing: Bool
     @State private var animateConfetti = false
@@ -287,5 +288,37 @@ struct GoalCompletionAnimation: View {
                 animateConfetti = false
             }
         }
+    }
+}
+
+// MARK: - Integration with Main View
+struct DailyGoalIntegration: View {
+    @StateObject private var goalTracker = DailyGoalTracker()
+    @State private var showGoalCompletion = false
+    @ObservedObject var wordViewModel: WordCardViewModel
+    
+    var body: some View {
+        VStack {
+            // Daily goal progress view
+            EnhancedDailyGoalProgressView(goalTracker: goalTracker)
+                .padding(.top)
+            
+            // Word cards view
+          EnhancedCardStackView(viewModel: wordViewModel)
+                .onChange(of: wordViewModel.wordsViewedToday) { newCount in
+                    // Update goal tracker
+                    goalTracker.recordWordViewed()
+                    
+                    // Check if goal was just reached
+                    if goalTracker.isDailyGoalReached() && !showGoalCompletion && !goalTracker.hasReachedGoalToday {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showGoalCompletion = true
+                        }
+                    }
+                }
+        }
+        .overlay(
+            GoalCompletionAnimation(isShowing: $showGoalCompletion)
+        )
     }
 }
