@@ -41,37 +41,46 @@ struct DailyGoalProgressView: View {
             }
 
             // Progress bar
-            ZStack(alignment: .leading) {
-                // Background
-                Rectangle()
-                    .frame(height: 10)
-                    .foregroundColor(Color.gray.opacity(0.2))
-                    .cornerRadius(5)
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background
+                    Rectangle()
+                        .frame(height: 10)
+                        .foregroundColor(Color.gray.opacity(0.2))
+                        .cornerRadius(5)
 
-                // Progress
-                Rectangle()
-                    .frame(
-                        width: CGFloat(goalTracker.getProgressPercentage())
-                            * UIScreen.main.bounds.width - 40, height: 10
-                    )
-                    .foregroundColor(progressColor)
-                    .cornerRadius(5)
-                    .animation(
-                        .spring(response: 0.6, dampingFraction: 0.7),
-                        value: goalTracker.wordsViewedToday)
+                    // Progress
+                    Rectangle()
+                        .frame(
+                            width: max(
+                                0,
+                                CGFloat(goalTracker.getProgressPercentage()) * (geometry.size.width)
+                            ),
+                            height: 10
+                        )
+                        .foregroundColor(progressColor)
+                        .cornerRadius(5)
+                        .animation(
+                            .spring(response: 0.6, dampingFraction: 0.7),
+                            value: goalTracker.wordsViewedToday)
 
-                // Milestone markers
-                ForEach(1..<goalTracker.dailyGoal, id: \.self) { milestone in
-                    if milestone % (max(goalTracker.dailyGoal / 5, 1)) == 0 {
-                        Rectangle()
-                            .frame(width: 2, height: 14)
-                            .foregroundColor(Color.white.opacity(0.7))
-                            .offset(
-                                x: CGFloat(Double(milestone) / Double(goalTracker.dailyGoal))
-                                    * (UIScreen.main.bounds.width - 40))
+                    // Milestone markers
+                    ForEach(1..<goalTracker.dailyGoal, id: \.self) { milestone in
+                        if milestone % (max(goalTracker.dailyGoal / 5, 1)) == 0 {
+                            Rectangle()
+                                .frame(width: 2, height: 14)
+                                .foregroundColor(Color.white.opacity(0.7))
+                                .offset(
+                                    x: max(
+                                        0,
+                                        CGFloat(Double(milestone) / Double(goalTracker.dailyGoal))
+                                            * geometry.size.width)
+                                )
+                        }
                     }
                 }
             }
+            .frame(height: 14)
 
             // Goal completion indicator
             if goalTracker.hasReachedGoalToday {
