@@ -77,92 +77,101 @@ struct EnhancedWordCardView: View {
     @State private var isShowingDefinition = false
     @State private var isShowingExample = false
     @State private var isShowingMastery = false
+    @EnvironmentObject private var scrollProxy: ScrollViewProxy
 
     var body: some View {
         ScrollView(showsIndicators: true) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Word and pronunciation
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(word.term)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.textPrimary)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+            ScrollViewReader { scrollReader in
+                VStack(alignment: .leading, spacing: 16) {
+                    // Word and pronunciation
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(word.term)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.textPrimary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .id("top")  // Add an ID for the top of the content
 
-                    Text(word.pronunciation)
-                        .font(.subheadline)
-                        .foregroundColor(.textSecondary)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(word.pronunciation)
+                            .font(.subheadline)
+                            .foregroundColor(.textSecondary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    Text(word.partOfSpeech)
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
-                        .padding(.vertical, 2)
-                        .padding(.horizontal, 8)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(4)
-                }
-                .opacity(1.0)
-                .padding(.top, 24)
+                        Text(word.partOfSpeech)
+                            .font(.caption)
+                            .foregroundColor(.textSecondary)
+                            .padding(.vertical, 2)
+                            .padding(.horizontal, 8)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(4)
+                    }
+                    .opacity(1.0)
+                    .padding(.top, 24)
 
-                // Mastery indicator with animation
-                EnhancedMasteryIndicatorView(level: word.masteryLevel)
-                    .opacity(isShowingMastery ? 1 : 0)
-                    .offset(y: isShowingMastery ? 0 : 20)
+                    // Mastery indicator with animation
+                    EnhancedMasteryIndicatorView(level: word.masteryLevel)
+                        .opacity(isShowingMastery ? 1 : 0)
+                        .offset(y: isShowingMastery ? 0 : 20)
+                        .animation(
+                            .spring(response: 0.5, dampingFraction: 0.7).delay(0.1),
+                            value: isShowingMastery
+                        )
+
+                    Divider()
+
+                    // Definition with animation
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Definition")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.textSecondary)
+
+                        Text(word.definition)
+                            .font(.body)
+                            .foregroundColor(.textPrimary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .opacity(isShowingDefinition ? 1 : 0)
+                    .offset(y: isShowingDefinition ? 0 : 20)
                     .animation(
-                        .spring(response: 0.5, dampingFraction: 0.7).delay(0.1),
-                        value: isShowingMastery
+                        .spring(response: 0.5, dampingFraction: 0.7).delay(0.2),
+                        value: isShowingDefinition
                     )
 
-                Divider()
+                    // Example with animation
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Example")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.textSecondary)
 
-                // Definition with animation
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Definition")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.textSecondary)
+                        Text(word.example)
+                            .font(.body)
+                            .italic()
+                            .foregroundColor(.textSecondary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .opacity(isShowingExample ? 1 : 0)
+                    .offset(y: isShowingExample ? 0 : 20)
+                    .animation(
+                        .spring(response: 0.5, dampingFraction: 0.7).delay(0.3),
+                        value: isShowingExample
+                    )
 
-                    Text(word.definition)
-                        .font(.body)
-                        .foregroundColor(.textPrimary)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // Add extra space at the bottom to push content up
+                    Spacer(minLength: 100)
                 }
-                .opacity(isShowingDefinition ? 1 : 0)
-                .offset(y: isShowingDefinition ? 0 : 20)
-                .animation(
-                    .spring(response: 0.5, dampingFraction: 0.7).delay(0.2),
-                    value: isShowingDefinition
-                )
-
-                // Example with animation
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Example")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.textSecondary)
-
-                    Text(word.example)
-                        .font(.body)
-                        .italic()
-                        .foregroundColor(.textSecondary)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                .padding(20)
+                .onChange(of: scrollProxy.scrollToTopTrigger) { _ in
+                    withAnimation {
+                        scrollReader.scrollTo("top", anchor: .top)
+                    }
                 }
-                .opacity(isShowingExample ? 1 : 0)
-                .offset(y: isShowingExample ? 0 : 20)
-                .animation(
-                    .spring(response: 0.5, dampingFraction: 0.7).delay(0.3),
-                    value: isShowingExample
-                )
-
-                // Add extra space at the bottom to push content up
-                Spacer(minLength: 100)
             }
-            .padding(20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
@@ -205,6 +214,8 @@ struct EnhancedCardStackView: View {
     @State private var swipeDirection: WordCardViewModel.SwipeDirection? = nil
     @State private var isCardActive = false
     @State private var animateBackground = false
+    @Namespace private var cardNamespace
+    @StateObject private var scrollProxy = ScrollViewProxy()
 
     init(viewModel: WordCardViewModel) {
         self.viewModel = viewModel
@@ -240,6 +251,8 @@ struct EnhancedCardStackView: View {
                 ZStack {
                     // Current card
                     EnhancedWordCardView(word: viewModel.currentWord)
+                        .id("\(viewModel.currentIndex)-\(viewModel.currentWord.id)")
+                        .environmentObject(scrollProxy)
                         .offset(dragAmount)
                         .rotationEffect(.degrees(cardRotation))
                         .scaleEffect(cardScale)
@@ -521,6 +534,9 @@ struct EnhancedCardStackView: View {
             let newIndex = (viewModel.currentIndex + 1) % viewModel.words.count
             viewModel.currentIndex = newIndex
 
+            // Reset the scroll position to top for the new card
+            scrollProxy.scrollToTop()
+
             // Reset card state with no animation
             dragAmount = .zero
             cardRotation = 0
@@ -533,6 +549,15 @@ struct EnhancedCardStackView: View {
                 cardScale = 1.0
             }
         }
+    }
+}
+
+// Add this class to handle scroll position reset
+class ScrollViewProxy: ObservableObject {
+    @Published var scrollToTopTrigger = false
+
+    func scrollToTop() {
+        scrollToTopTrigger.toggle()
     }
 }
 
