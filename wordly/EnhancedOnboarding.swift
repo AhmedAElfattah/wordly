@@ -3,11 +3,11 @@ import SwiftUI
 struct EnhancedOnboardingView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = EnhancedOnboardingViewModel()
-    
+
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
-            
+
             VStack {
                 switch viewModel.currentStep {
                 case .welcome:
@@ -80,7 +80,7 @@ class EnhancedOnboardingViewModel: ObservableObject {
     @Published var selectedDifficulty: DifficultyLevel = .intermediate
     @Published var selectedCategories: Set<WordCategory> = []
     @Published var selectedDailyGoal: Int = 10
-    
+
     enum OnboardingStep {
         case welcome
         case difficultySelection
@@ -88,7 +88,7 @@ class EnhancedOnboardingViewModel: ObservableObject {
         case dailyGoalSetting
         case completion
     }
-    
+
     func moveToNextStep() {
         switch currentStep {
         case .welcome:
@@ -104,7 +104,7 @@ class EnhancedOnboardingViewModel: ObservableObject {
             break
         }
     }
-    
+
     func moveToPreviousStep() {
         switch currentStep {
         case .welcome:
@@ -120,11 +120,11 @@ class EnhancedOnboardingViewModel: ObservableObject {
             currentStep = .dailyGoalSetting
         }
     }
-    
+
     func selectDifficulty(_ difficulty: DifficultyLevel) {
         selectedDifficulty = difficulty
     }
-    
+
     func toggleCategory(_ category: WordCategory) {
         if selectedCategories.contains(category) {
             selectedCategories.remove(category)
@@ -132,15 +132,15 @@ class EnhancedOnboardingViewModel: ObservableObject {
             selectedCategories.insert(category)
         }
     }
-    
+
     func isCategorySelected(_ category: WordCategory) -> Bool {
         return selectedCategories.contains(category)
     }
-    
+
     func canProceedFromCategorySelection() -> Bool {
         return !selectedCategories.isEmpty
     }
-    
+
     func getUserPreferences() -> UserPreferences {
         return UserPreferences(
             difficultyLevel: selectedDifficulty,
@@ -154,9 +154,9 @@ struct DailyGoalSettingView: View {
     @Binding var selectedGoal: Int
     let onContinue: () -> Void
     let onBack: () -> Void
-    
+
     let goalOptions = [5, 10, 15, 20, 25]
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Set Your Daily Goal")
@@ -164,13 +164,13 @@ struct DailyGoalSettingView: View {
                 .fontWeight(.bold)
                 .foregroundColor(.textPrimary)
                 .padding(.top)
-            
+
             Text("How many words would you like to learn each day?")
                 .font(.body)
                 .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             ScrollView {
                 VStack(spacing: 15) {
                     ForEach(goalOptions, id: \.self) { goal in
@@ -186,13 +186,13 @@ struct DailyGoalSettingView: View {
                 }
                 .padding()
             }
-            
+
             Spacer()
-            
+
             // Progress indicator
             ProgressIndicator(currentStep: 3, totalSteps: 4)
                 .padding(.bottom)
-            
+
             HStack {
                 Button(action: onBack) {
                     HStack {
@@ -207,7 +207,7 @@ struct DailyGoalSettingView: View {
                     .cornerRadius(10)
                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
                 }
-                
+
                 Button(action: onContinue) {
                     HStack {
                         Text("Continue")
@@ -233,7 +233,7 @@ struct DailyGoalCard: View {
     let goal: Int
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack {
@@ -241,14 +241,14 @@ struct DailyGoalCard: View {
                     Text("\(goal) Words")
                         .font(.headline)
                         .foregroundColor(isSelected ? .white : .textPrimary)
-                    
+
                     Text(goalDescription(for: goal))
                         .font(.caption)
                         .foregroundColor(isSelected ? .white.opacity(0.8) : .textSecondary)
                 }
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.white)
@@ -268,7 +268,7 @@ struct DailyGoalCard: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     private func goalDescription(for goal: Int) -> String {
         switch goal {
         case 5:
@@ -293,4 +293,3 @@ struct UserPreferences {
     var selectedCategories: [WordCategory] = []
     var dailyGoal: Int = 10
 }
-

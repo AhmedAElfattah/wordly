@@ -173,6 +173,12 @@ struct EnhancedCardStackView: View {
     @State private var showQuiz = false
     @StateObject private var quizViewModel: QuizViewModel
     @StateObject private var streakTracker = StreakTracker()
+    @State private var dragAmount = CGSize.zero
+    @State private var cardRotation: Double = 0
+    @State private var cardScale: CGFloat = 1.0
+    @State private var swipeDirection: WordCardViewModel.SwipeDirection? = nil
+    @State private var isCardActive = false
+    @State private var animateBackground = false
 
     init(viewModel: WordCardViewModel) {
         self.viewModel = viewModel
@@ -181,88 +187,511 @@ struct EnhancedCardStackView: View {
 
     var body: some View {
         ZStack {
-            // Background
-            AnimatedBackgroundView()
+            // Dynamic background
+            ZStack {
+                Color.background.ignoresSafeArea()
+
+                ForEach(0..<5) { index in
+                    Circle()
+                        .fill(Color.primary.opacity(0.03))
+                        .frame(width: 100 + CGFloat(index * 50))
+                        .offset(
+                            x: animateBackground ? CGFloat.random(in: -5...5) : 0,
+                            y: animateBackground ? CGFloat.random(in: -5...5) : 0
+                        )
+                        .blur(radius: 3)
+                }
+            }
+            .onAppear {
+                withAnimation(.easeInOut(duration: 8).repeatForever(autoreverses: true)) {
+                    animateBackground = true
+                }
+            }
 
             // Main content
             VStack {
-                // Progress indicator
-                EnhancedDailyGoalProgressView(
-                    goalTracker: DailyGoalTracker(dailyGoal: viewModel.dailyGoal)
-                )
+                // Word card
+                ZStack {
+                    // Current card
+                    EnhancedWordCardView(word: viewModel.currentWord)
+                        .offset(dragAmount)
+                        .rotationEffect(.degrees(cardRotation))
+                        .scaleEffect(cardScale)
+                        .gesture(
+                            DragGesture()
+                                .onChanged { gesture in
+                                    // Update translation based on drag
+                                    dragAmount = gesture.translation
+
+                                    // Determine swipe direction
+                                    let xOffset = gesture.translation.width
+                                    let yOffset = gesture.translation.height
+
+                                    // Calculate rotation based on horizontal drag
+                                    cardRotation = Double(xOffset) * 0.1
+
+                                    // Determine probable swipe direction
+                                    if abs(xOffset) > abs(yOffset) {
+                                        // Horizontal swipe
+                                        swipeDirection = xOffset > 0 ? .right : .left
+                                    } else {
+                                        // Vertical swipe
+                                        swipeDirection = yOffset > 0 ? .down : .up
+                                    }
+
+                                    // Visual feedback
+                                    isCardActive = true
+                                }
+                                .onEnded { gesture in
+                                    // Determine if this is a swipe or reset
+                                    let threshold: CGFloat = 100
+                                    let xOffset = gesture.translation.width
+                                    let yOffset = gesture.translation.height
+
+                                    if abs(xOffset) > threshold || abs(yOffset) > threshold {
+                                        // Handle swipe
+                                        if abs(xOffset) > abs(yOffset) {
+                                            // Horizontal swipe - advance to next card
+                                            performSwipe(xOffset > 0 ? .right : .left)
+                                        } else {
+                                            // Vertical swipe - mark as known or not
+                                            performSwipe(yOffset > 0 ? .down : .up)
+                                        }
+                                    } else {
+                                        // Reset card position with animation
+                                        withAnimation(.spring()) {
+                                            dragAmount = .zero
+                                            cardRotation = 0
+                                            cardScale = 1.0
+                                            isCardActive = false
+                                            swipeDirection = nil
+                                        }
+                                    }
+                                }
+                        )
+                        .animation(.spring(), value: dragAmount)
+                        .overlay(
+                            // Swipe indicators
+                            Group {
+                                if let direction = swipeDirection, isCardActive {
+                                    SwipeIndicatorOverlay(direction: direction)
+                                        .opacity(
+                                            min(
+                                                1.0,
+                                                abs(dragAmount.width) / 100 + abs(dragAmount.height)
+                                                    / 100))
+                                }
+                            }
+                        )
+                }
+                .frame(height: 400)
                 .padding(.horizontal)
-                .padding(.top)
 
-                // Streak indicator
-                StreakView(streakTracker: streakTracker)
-                    .padding(.horizontal)
+                // Swipe instruction
+                Text("Swipe up if you know it, down if you don't")
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+                    .padding(.top, 8)
 
-                // Card stack with vertical scrolling
-                TabView(selection: $viewModel.currentIndex) {
-                    ForEach(0..<viewModel.words.count, id: \.self) { index in
-                        EnhancedWordCardView(word: viewModel.words[index])
-                            .tag(index)
+                // Action buttons
+                HStack(spacing: 30) {
+                    SwipeButton(icon: "xmark.circle.fill", color: .red) {
+                        performSwipe(.down)
+                    }
+
+                    SwipeButton(icon: "arrow.left.circle.fill", color: .blue) {
+                        performSwipe(.left)
+                    }
+
+                    SwipeButton(icon: "arrow.right.circle.fill", color: .blue) {
+                        performSwipe(.right)
+                    }
+
+                    SwipeButton(icon: "checkmark.circle.fill", color: .green) {
+                        performSwipe(.up)
                     }
                 }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 16)
 
-                // Navigation controls
-                HStack {
-                    Button(action: {
-                        withAnimation {
-                            if viewModel.currentIndex > 0 {
-                                viewModel.currentIndex -= 1
+                Spacer()
+            }
+            .padding(.top)
+
+            // Quiz popup when cycle completes
+            if showQuiz {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        showQuiz = false
+                    }
+
+                VStack {
+                    Text("Ready for a quiz?")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+
+                    Text("Test your knowledge on the words you've learned")
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+
+                    HStack(spacing: 20) {
+                        Button("Not Now") {
+                            withAnimation {
+                                showQuiz = false
                             }
                         }
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundColor(.primary)
-                    }
-                    .disabled(viewModel.currentIndex == 0)
+                        .padding()
+                        .background(Color.gray.opacity(0.3))
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
 
-                    Spacer()
-
-                    // Quiz button
-                    Button(action: {
-                        withAnimation {
-                            showQuiz = true
+                        Button("Start Quiz") {
+                            showQuiz = false
+                            // Navigate to quiz (handled in parent view)
                         }
-                    }) {
-                        Image(systemName: "questionmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.primary)
+                        .padding()
+                        .background(Color.primary)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                     }
-
-                    Spacer()
-
-                    Button(action: {
-                        withAnimation {
-                            if viewModel.currentIndex < viewModel.words.count - 1 {
-                                viewModel.currentIndex += 1
-                            } else {
-                                viewModel.currentIndex = 0
-                                completedCycle = true
-                            }
-                            viewModel.incrementWordsViewedToday()
-                            streakTracker.recordInteraction()
-                        }
-                    }) {
-                        Image(systemName: "chevron.right")
-                            .font(.title2)
-                            .foregroundColor(.primary)
-                    }
+                    .padding(.top, 20)
                 }
-                .padding()
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.primary, Color.secondary]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                )
+                .padding(40)
+                .transition(.scale.combined(with: .opacity))
             }
 
-   
+            // Cycle completion animation
+            if showCompletionAnimation {
+                VStack {
+                    Text("Cycle Completed!")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
 
-            // Quiz overlay
-            if showQuiz {
-                QuizView(viewModel: quizViewModel, isShowing: $showQuiz)
-                    .transition(.move(edge: .bottom))
+                    Text("Great job going through all the words!")
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    Button("Continue") {
+                        withAnimation {
+                            showCompletionAnimation = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                withAnimation {
+                                    if viewModel.shouldShowQuiz() {
+                                        showQuiz = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .padding(.horizontal, 16)
+                    .background(Color.white)
+                    .foregroundColor(.primary)
+                    .cornerRadius(10)
+                    .padding(.top, 16)
+                }
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.primary, Color.accent]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ))
+                )
+                .shadow(radius: 20)
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(2)
+            }
+        }
+    }
+
+    private func performSwipe(_ direction: WordCardViewModel.SwipeDirection) {
+        // Determine target position for animation
+        var targetPosition = CGSize.zero
+
+        switch direction {
+        case .up:
+            targetPosition = CGSize(width: 0, height: -1000)
+            // Mark word as known
+            viewModel.markCurrentWordAsKnown()
+            HapticFeedbackManager.shared.playProgressiveHaptic(
+                for: viewModel.currentWord.masteryLevel)
+        case .down:
+            targetPosition = CGSize(width: 0, height: 1000)
+            HapticFeedbackManager.shared.playEnhancedSwipe()
+        case .left:
+            targetPosition = CGSize(width: -1000, height: 0)
+            HapticFeedbackManager.shared.playEnhancedSwipe()
+        case .right:
+            targetPosition = CGSize(width: 1000, height: 0)
+            HapticFeedbackManager.shared.playEnhancedSwipe()
+        }
+
+        // Animate the card off screen
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            dragAmount = targetPosition
+
+            // Add rotation for more natural movement
+            switch direction {
+            case .up, .down:
+                cardRotation = Double.random(in: -5...5)
+            case .left:
+                cardRotation = -10
+            case .right:
+                cardRotation = 10
+            }
+        }
+
+        // Play swipe sound
+        SoundManager.shared.playSwipeSound()
+
+        // Increment the counter
+        viewModel.incrementWordsViewedToday()
+
+        // After animation, move to next card
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Check if we've completed a full cycle
+            if viewModel.currentIndex == viewModel.words.count - 1 {
+                // Show completion animation
+                viewModel.completedCycle()
+
+                withAnimation {
+                    showCompletionAnimation = true
+                }
+
+                // Play completion sound and haptics
+                SoundManager.shared.playVictorySound()
+                HapticFeedbackManager.shared.playCycleCompletion()
+            }
+
+            // Update current index (cycle through the cards)
+            let newIndex = (viewModel.currentIndex + 1) % viewModel.words.count
+            viewModel.currentIndex = newIndex
+
+            // Reset card state with no animation
+            dragAmount = .zero
+            cardRotation = 0
+            isCardActive = false
+            swipeDirection = nil
+
+            // Apply a subtle "appear" animation for the next card
+            cardScale = 0.8
+            withAnimation(.spring()) {
+                cardScale = 1.0
+            }
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+struct SwipeButton: View {
+    let icon: String
+    let color: Color
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: {
+            isPressed = true
+
+            // Haptic feedback
+            HapticFeedbackManager.shared.playSelection()
+
+            // Perform action
+            action()
+
+            // Reset pressed state
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isPressed = false
+            }
+        }) {
+            Image(systemName: icon)
+                .font(.system(size: 30))
+                .foregroundColor(color)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill(Color.cardBackground)
+                        .shadow(color: color.opacity(0.2), radius: 5, x: 0, y: 2)
+                )
+                .scaleEffect(isPressed ? 0.9 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+        }
+    }
+}
+
+struct SwipeIndicatorOverlay: View {
+    let direction: WordCardViewModel.SwipeDirection
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(indicatorColor.opacity(0.7), lineWidth: 3)
+                    .background(indicatorColor.opacity(0.2))
+                    .cornerRadius(20)
+
+                VStack {
+                    indicatorIcon
+                        .font(.system(size: 50))
+                        .foregroundColor(indicatorColor)
+
+                    Text(indicatorText)
+                        .font(.headline)
+                        .foregroundColor(indicatorColor)
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+
+    private var indicatorColor: Color {
+        switch direction {
+        case .up:
+            return .green
+        case .down:
+            return .red
+        case .left, .right:
+            return .blue
+        }
+    }
+
+    private var indicatorIcon: some View {
+        switch direction {
+        case .up:
+            return Image(systemName: "checkmark.circle.fill")
+        case .down:
+            return Image(systemName: "xmark.circle.fill")
+        case .left:
+            return Image(systemName: "arrow.left.circle.fill")
+        case .right:
+            return Image(systemName: "arrow.right.circle.fill")
+        }
+    }
+
+    private var indicatorText: String {
+        switch direction {
+        case .up:
+            return "I know this!"
+        case .down:
+            return "Don't know yet"
+        case .left:
+            return "Previous"
+        case .right:
+            return "Next"
+        }
+    }
+}
+
+// MARK: - Streak Tracker
+class StreakTracker: ObservableObject {
+    @Published var currentStreak: Int = 0
+    @Published var bestStreak: Int = 0
+
+    init() {
+        currentStreak = UserDefaultsManager.shared.getStreakDays()
+        bestStreak = UserDefaultsManager.shared.getBestStreak()
+    }
+
+    func incrementStreak() {
+        currentStreak += 1
+
+        if currentStreak > bestStreak {
+            bestStreak = currentStreak
+            UserDefaultsManager.shared.saveBestStreak(bestStreak)
+        }
+
+        UserDefaultsManager.shared.saveStreakDays(currentStreak)
+    }
+
+    func resetStreak() {
+        currentStreak = 0
+        UserDefaultsManager.shared.saveStreakDays(0)
+    }
+}
+
+struct StreakView: View {
+    @ObservedObject var streakTracker: StreakTracker
+    @State private var showAnimation = false
+
+    var body: some View {
+        HStack(spacing: 20) {
+            // Current streak
+            VStack(alignment: .center, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(.orange)
+                        .opacity(showAnimation ? 1 : 0.7)
+                        .scaleEffect(showAnimation ? 1.1 : 1.0)
+
+                    Text("\(streakTracker.currentStreak)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.textPrimary)
+                }
+
+                Text("Current")
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+            }
+            .frame(width: 80)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.cardBackground)
+                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+            )
+
+            // Best streak
+            VStack(alignment: .center, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "trophy.fill")
+                        .foregroundColor(.yellow)
+
+                    Text("\(streakTracker.bestStreak)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.textPrimary)
+                }
+
+                Text("Best")
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+            }
+            .frame(width: 80)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.cardBackground)
+                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+            )
+        }
+        .padding(.horizontal)
+        .onAppear {
+            // Animate flame when view appears
+            withAnimation(Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                showAnimation = true
             }
         }
     }
@@ -454,6 +883,7 @@ struct TutorialView: View {
     }
 }
 
+// MARK: - Tutorial Page
 struct TutorialPage: Identifiable {
     let id = UUID()
     let title: String
@@ -461,6 +891,7 @@ struct TutorialPage: Identifiable {
     let imageName: String
 }
 
+// MARK: - Tutorial Page View
 struct TutorialPageView: View {
     let page: TutorialPage
 
@@ -491,89 +922,5 @@ struct TutorialPageView: View {
             Spacer()
         }
         .padding(.top, 60)
-    }
-}
-
-// MARK: - Quiz View
-struct QuizView: View {
-    @ObservedObject var viewModel: QuizViewModel
-    @Binding var isShowing: Bool
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    withAnimation {
-                        isShowing = false
-                    }
-                }
-
-            VStack(spacing: 20) {
-                // Question
-                Text(viewModel.currentQuestion.word.definition)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .padding()
-
-                // Options
-                VStack(spacing: 15) {
-                    ForEach(viewModel.currentQuestion.options, id: \.self) { option in
-                        Button(action: {
-                            viewModel.selectAnswer(option)
-                        }) {
-                            Text(option)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(
-                                            viewModel.selectedAnswer == option
-                                                ? (viewModel.isAnswerCorrect == true
-                                                    ? Color.green : Color.red)
-                                                : Color.primary.opacity(0.8))
-                                )
-                        }
-                        .disabled(viewModel.selectedAnswer != nil)
-                    }
-                }
-                .padding()
-
-                // Next button
-                if viewModel.selectedAnswer != nil {
-                    Button(action: {
-                        withAnimation {
-                            if viewModel.currentQuestionIndex < viewModel.questions.count - 1 {
-                                viewModel.moveToNextQuestion()
-                            } else {
-                                isShowing = false
-                            }
-                        }
-                    }) {
-                        Text(
-                            viewModel.currentQuestionIndex < viewModel.questions.count - 1
-                                ? "Next" : "Finish"
-                        )
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200)
-                        .background(Color.green)
-                        .cornerRadius(10)
-                    }
-                }
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.cardBackground)
-                    .shadow(radius: 10)
-            )
-            .padding()
-        }
     }
 }

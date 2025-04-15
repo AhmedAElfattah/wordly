@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - Models
 
 struct Word: Identifiable, Equatable {
-    let id = UUID()
+    let id = UUID().uuidString
     let term: String
     let pronunciation: String
     let partOfSpeech: String
@@ -12,6 +12,16 @@ struct Word: Identifiable, Equatable {
     let example: String
     let category: WordCategory
     var masteryLevel: MasteryLevel = .new
+
+    // For loading mastery levels from UserDefaults
+    mutating func loadSavedMasteryLevel() {
+        self.masteryLevel = UserDefaultsManager.shared.getMasteryLevel(for: id)
+    }
+
+    // For saving mastery level to UserDefaults
+    func saveMasteryLevel() {
+        UserDefaultsManager.shared.saveMasteryLevel(for: id, level: masteryLevel)
+    }
 }
 
 enum MasteryLevel: Int, CaseIterable {
@@ -92,4 +102,11 @@ struct QuizQuestion: Identifiable {
     let word: Word
     let correctAnswer: String
     let options: [String]
+    var questionType: QuestionType = .termToDefinition
+    var question: String = ""
+
+    enum QuestionType {
+        case termToDefinition  // Question asks for definition based on term
+        case definitionToTerm  // Question asks for term based on definition
+    }
 }

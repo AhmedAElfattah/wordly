@@ -134,7 +134,8 @@ struct CategoryWordSets {
             pronunciation: "/ˈrɛnəsɑːns/",
             partOfSpeech: "noun",
             definition: "A revival of or renewed interest in something.",
-            example: "The city experienced a cultural renaissance after the new arts center opened.",
+            example:
+                "The city experienced a cultural renaissance after the new arts center opened.",
             category: .arts
         ),
         Word(

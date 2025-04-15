@@ -36,14 +36,15 @@ class WordCardViewModel: ObservableObject {
     }
 
     private func loadSavedProgress() {
-        // In a real app, we would load this from UserDefaults
-        wordsViewedToday = 0
+        // Load from UserDefaults
+        wordsViewedToday = UserDefaultsManager.shared.getWordsViewedToday()
         hasShownDailyGoalAnimation = false
+        dailyGoal = UserDefaultsManager.shared.getDailyGoal()
     }
 
     private func saveProgress() {
-        // In a real app, we would save this to UserDefaults
-        print("Saving progress: \(wordsViewedToday)/\(dailyGoal) words viewed today")
+        // Save to UserDefaults
+        UserDefaultsManager.shared.saveWordsViewedToday(wordsViewedToday)
     }
 
     func markCurrentWordAsKnown() {
@@ -54,6 +55,10 @@ class WordCardViewModel: ObservableObject {
 
             // Update the word's mastery level
             words[currentIndex].masteryLevel = newLevel
+
+            // Save to UserDefaults
+            var updatedWord = words[currentIndex]
+            updatedWord.saveMasteryLevel()
 
             // Play haptic feedback and sound if level increased
             if newLevel.rawValue > oldLevel.rawValue {
@@ -109,12 +114,18 @@ class WordCardViewModel: ObservableObject {
     }
 
     func loadWordsForCategories(_ categories: [WordCategory]) {
-        // In a real app, we would load this from a database
+        // Filter sample words by selected categories
         words = Word.sampleWords.filter { word in
             categories.contains(word.category)
         }
+
+        // Load saved mastery levels for each word
+        for i in 0..<words.count {
+            words[i].loadSavedMasteryLevel()
+        }
+
         currentIndex = 0
-        wordsViewedToday = 0
+        wordsViewedToday = UserDefaultsManager.shared.getWordsViewedToday()
         hasShownDailyGoalAnimation = false
     }
 }
